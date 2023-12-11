@@ -1,0 +1,16 @@
+# Example data
+set.seed(42)
+your_data <- data.frame(
+  x = rnorm(100),
+  y = rnorm(100),
+  group1 = rep(c("A", "B"), each = 50),
+  group2 = rep(c("C", "D"), each = 50)
+)
+
+# Creating an interaction variable
+your_data$combined_group <- interaction(your_data$group1, your_data$group2)
+
+# Plotting with two variables as the grouping variable
+ggplot(your_data, aes(x = x, y = y, color = combined_group)) +
+  geom_point() +
+  theme_minimal()
