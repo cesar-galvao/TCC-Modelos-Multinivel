@@ -1,6 +1,8 @@
 # Pacotes ----
 if(!require("pacman")){install.packages("pacman")}
-pacman::p_load(tidyverse, scales, sommer, car, corrplot, lme4, magrittr)
+pacman::p_load(tidyverse, scales, sommer, car, corrplot, lme4, renv)
+
+# renv::diagnostics()
 
 
 # Pedigree ----
@@ -8,6 +10,7 @@ ped <- read.csv("pedigree.txt", sep = "\t")
 
 # quantos genotipos
 ped$id |> length() #sao 100
+
 
 # maes
 ped %>%
@@ -25,11 +28,12 @@ ped %>%
   mutate(conta = cumsum(n),
          sex = "M")
 
-# casais
-# ped %>%
-#   group_by(sire, dam) %>%
-#   count() %>%
-#   arrange(sire)
+#casais
+ped %>%
+  group_by(sire, dam) %>%
+  count() %>%
+  arrange(sire) %>%
+  arrange(n)
 
 ### -------------- COMENTARIOS ----------------- ####
 # Os primeiros 20 genótipos são pais ou maes.
@@ -61,13 +65,16 @@ trials <- feno %>%
 #   geom_abline(intercept = trials$mu, slope = 0, color = "red")
 
 #IC de cada trial, ordenado, comparados à média geral
-ggplot(trials, aes(reorder(Trial, mean_yield), mean_yield))+
+yield_trials <- ggplot(trials, aes(reorder(Trial, mean_yield), mean_yield))+
   geom_point()+
   geom_line(data = trials, aes(Trial,value, group = Trial))+
   geom_abline(intercept = trials$mu, slope = 0, color = "red", linetype = "dashed")+ 
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
   labs(x = "Célula experimental (Trial)", y = "Produção (Yield)")
+
+yield_trials |>
+  ggsave(filename = "imagens/yield_trials.png", dpi = 600, scale = 2)
 
 
 # ggplot(feno, aes(Yield, group = Trial))+
@@ -80,7 +87,7 @@ ggplot(trials, aes(reorder(Trial, mean_yield), mean_yield))+
 ### -------------- COMENTARIOS ----------------- ####
 # Experimentos são balanceados, todos os 100 genotipos ocorrem em cada trial.
 # Média dos trials parecem estar distribuidas em torno da média, mas com variancias diferentes
-# TESTAR VARIANIAS DIFERENTES
+# TESTAR VARIANIAS DIFERENTES - NAO PRECISA
 # Com um IC para cada Trial, nenhum deles aparenta ser significativamente diferente da média
 # 50 trials, 100 replicacoes em cada, 5.000 experimentos
 ### ------------------------------------------- ####
@@ -96,7 +103,7 @@ familia <- feno %>%
   mutate(
     mean_yield = mean(Yield),
     n = n(),
-    sigma_i = var(Yield),
+    sigma_i = var(Yield), #no IC o desvio padrão é dividido por n?
     LI = mean_yield - qnorm(.975)*sqrt(sigma_i),
     LS = mean_yield + qnorm(.975)*sqrt(sigma_i) 
   ) %>%
@@ -414,14 +421,48 @@ envmrk_data <- ENVMkrs %>%
   inner_join(feno) %>%
   mutate(Trial = factor(Trial))
 
+### Modelo completamente fixo ----
+
+formula_fixo <- formula(paste0("Yield ~ ",str_c(ENVsel, collapse = " + ")))
+
+#tomamos como premissa a não-seleção de variáveis
+modfix1 <- lm(formula_fixo, data = envmrk_data)
+summary(modfix1)
+anova(modfix1)
+
+modfix4 <- lm(formula(paste0("Yield ~ ",str_c(ENVsel[-c(1, 4, 7)], collapse = " + "))),
+              data = envmrk_data)
+
+# análise de resíduos
+source("envelope_function.R")
+envelope_LR(modfix1, OLS = T, main.title = "Resíduos com envelope")
+
+
+### -------------- COMENTARIOS ----------------- ####
+# Resíduos envelopados sugerem inadequação do ajuste,
+# há muitos pontos fora do envelope.
+# Mesmo com seleção de variáveis, teríamos o mesmo resultado.
+### ------------------------------------------- ####
+
+
 ### Modelo com intercepto fixo + aleatorio ----
 
 mod0 <- lmer(Yield ~ 1 + (1|Genotype),envmrk_data)
 summary(mod0)
 
+
 # erro padrao dos interceptos
 random_effects_var <- VarCorr(mod0)
-ep_of_random_effects <- attr(random_effects_var$Genotype, "stddev")
+ep_of_random_effects <- attr(random_effects_var$Genotype, "stddev") |>
+  as.vector()
+ep_of_residuals <- attr(random_effects_var$Genotype, "stddev") |>
+  as.vector()
+
+#correlacao intraclasse
+icc <- ep_of_random_effects^2/(
+  ep_of_random_effects^2 + 
+    ep_of_residuals^2
+)
 
 mean_intercept <- mean(ranef(mod0)$Genotype$`(Intercept)`)
 
@@ -516,4 +557,4 @@ blup2_ic %>%
 
 # NOTAS ----
 # Experimentar composição de ENVMRKR com análise fatorial
-
+# GERAR LM COMUM COM OS ENVMRKR
