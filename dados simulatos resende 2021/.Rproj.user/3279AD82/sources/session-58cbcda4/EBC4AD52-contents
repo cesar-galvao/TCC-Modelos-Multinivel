@@ -1,6 +1,7 @@
 # Pacotes ----
 if(!require("pacman")){install.packages("pacman")}
-pacman::p_load(tidyverse, scales, sommer, car, corrplot, lme4, renv)
+pacman::p_load(tidyverse, scales, sommer, car, corrplot, 
+               lme4, renv, xtable)
 
 # renv::diagnostics()
 
@@ -70,12 +71,14 @@ yield_trials <- ggplot(trials, aes(reorder(Trial, mean_yield), mean_yield))+
   geom_line(data = trials, aes(Trial,value, group = Trial))+
   geom_abline(intercept = trials$mu, slope = 0, color = "red", linetype = "dashed")+ 
   theme_bw()+
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        panel.grid.minor = element_blank())+
   labs(x = "Célula experimental (Trial)", y = "Produção (Yield)")
 
+if(!file.exists("imagens/yield_trials.png")){
 yield_trials |>
   ggsave(filename = "imagens/yield_trials.png", dpi = 600, scale = 2)
-
+}
 
 # ggplot(feno, aes(Yield, group = Trial))+
 #   geom_boxplot()+
@@ -111,13 +114,18 @@ familia <- feno %>%
   ungroup() %>%
   mutate(prog = paste(dam, sire, sep = " x "))
 
-ggplot(familia, aes(reorder(prog, mean_yield), mean_yield))+
+yield_familia <- ggplot(familia, aes(reorder(prog, mean_yield), mean_yield))+
   geom_point()+
   geom_line(data = familia, aes(prog,value, group = prog))+
   geom_abline(intercept = mu_y, slope = 0, color = "red", linetype = "dashed")+ 
   theme_bw()+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))+
   labs(x = "Progenitores", y = "Produção (Yield)")
+
+if(!file.exists("imagens/yield_familia.png")){
+yield_familia |>
+  ggsave(filename = "imagens/yield_familia.png", dpi = 600, scale = 2)
+}
 
 # testando diferença entre as variâncias ----
 leveneTest(Yield ~ prog, data = familia)
@@ -137,7 +145,7 @@ amb <- read.table("envdat.txt") %>%
          text = ifelse(!is.na(Trial),str_sub(Trial, start = 3), ""))
 
 # mapa de onde teve trial
-amb %>% 
+trial_map <- amb %>% 
   ggplot(aes(x = Longitude, y = Latitude, 
              fill = factor(experimento,
                            levels = c(0,1),
@@ -150,8 +158,13 @@ amb %>%
         panel.grid = element_blank())+
   labs(fill = "Experimento")
 
+if(!file.exists("imagens/trial_map.png")){
+trial_map |>
+  ggsave(filename = "imagens/trial_map.png", dpi = 600, scale = 2)
+}
+
 # ilustrar heat map de uma das variaveis
-ggplot(amb) +
+trial_heatmap <- ggplot(amb) +
   geom_tile(aes(Longitude, Latitude, fill = EA005)) +
   scale_fill_gradientn(colours = rev(jet.colors(7))) +
   geom_point(data = amb[!is.na(amb$Trial),],aes(Longitude,Latitude), size = 2,
@@ -159,6 +172,12 @@ ggplot(amb) +
   theme_minimal()+
   theme(axis.line = element_blank(),
         panel.grid = element_blank())
+
+if(!file.exists("imagens/trial_heatmap.png")){
+  trial_heatmap |>
+    ggsave(filename = "imagens/trial_heatmap.png", dpi = 600, scale = 2)
+}
+
 
 # clusterizar e ver média de yield por região 
 matriz <- amb %>%
@@ -291,7 +310,7 @@ formula_lmer <- paste0("EA", str_pad(1:100, width = 3, side = "left", pad = "0")
   paste0("Yield ~ (1 + ", ., "|Genotype)") %>%
   formula()
 
-hfit <- lmer(formula_lmer, data = data_fit_lmer)
+# hfit <- lmer(formula_lmer, data = data_fit_lmer)
 
 
 
@@ -430,8 +449,20 @@ modfix1 <- lm(formula_fixo, data = envmrk_data)
 summary(modfix1)
 anova(modfix1)
 
+#codigo latex do modelo 1
+xtable::xtable(summary(fit_modelo), caption = "Your Caption Here")
+
 modfix4 <- lm(formula(paste0("Yield ~ ",str_c(ENVsel[-c(1, 4, 7)], collapse = " + "))),
               data = envmrk_data)
+summary(modfix4)
+anova(modfix4)
+
+#codigo latex do modelo 4
+xtable::xtable(summary(modfix4), caption = "Your Caption Here")
+
+#comparação dos modelos via AIC
+AIC(modfix1)
+AIC(modfix4)
 
 # análise de resíduos
 source("envelope_function.R")
@@ -449,6 +480,7 @@ envelope_LR(modfix1, OLS = T, main.title = "Resíduos com envelope")
 
 mod0 <- lmer(Yield ~ 1 + (1|Genotype),envmrk_data)
 summary(mod0)
+
 
 
 # erro padrao dos interceptos
@@ -478,7 +510,7 @@ blup0 <- tibble(
   mutate(color = ifelse(max(value) <  mean_intercept| min(value) > mean_intercept, "red", "black"))
 
 
-blup0 %>%
+blup_mod0 <- blup0 %>%
   ggplot(aes(reorder(Genotype,blup), blup))+
   geom_point(position = "identity")+
   geom_line(data = blup0, aes(reorder(Genotype,blup), value, group = Genotype,
@@ -486,10 +518,15 @@ blup0 %>%
   scale_color_manual(values = c("gray", "red"))+
   geom_abline(intercept = mean(blup0$blup), slope = 0, aes(color = "red", linetype = "dashed"))+ 
   guides(color = FALSE)+
-  labs(y = "BLUP", x = "")+
+  labs(y = "BLUP", x = "Genótipo")+
   theme_bw()+
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
+
+if(!file.exists("imagens/blup_lmer_intercept.png")){
+  blup_mod0 |>
+    ggsave(filename = "imagens/blup_lmer_intercept.png", dpi = 600, scale = 2)
+}
 
 ### -------------- COMENTARIOS ----------------- ####
 # genotipos com IC para beta_0 diferentes de zero:
@@ -538,21 +575,25 @@ blup2_ic <- blup2 %>%
   mutate(color = factor(ifelse(max(ic_value) <  mean_blup| min(ic_value) > mean_blup, "red", "black")),)
 
   
-blup2_ic %>%
+blup_lmer_envmrk <- blup2_ic %>%
   ggplot(aes(reorder(Genotype,blup_value), blup_value))+
-  geom_point(position = "identity")+
+  geom_point()+
   geom_line(data = blup2_ic, aes(reorder(Genotype,blup_value), ic_value, group = Genotype,
                               color = color))+
   scale_color_manual(values = c("gray", "red"))+
   geom_abline(intercept = mean_blup, slope = 0, aes(color = "red", linetype = "dashed"))+ 
   guides(color = FALSE)+
   facet_wrap(~blup)+
-  labs(y = "BLUP", x = "")+
+  labs(y = "BLUP", x = "Genótipo")+
   theme_bw()+
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
         panel.grid = element_blank())  
-  
+
+if(!file.exists("imagens/blup_lmer_envmrk.png")){
+  blup_lmer_envmrk |>
+    ggsave(filename = "imagens/blup_lmer_envmrk.png", dpi = 600, scale = 2)
+}
 
 
 # NOTAS ----
