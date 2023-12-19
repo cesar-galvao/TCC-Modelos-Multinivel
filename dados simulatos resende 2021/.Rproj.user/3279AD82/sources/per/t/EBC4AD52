@@ -3,9 +3,9 @@
     "path": "~/UnB/TCC/TCC---Modelos-Multinivel/dados simulatos resende 2021/relatorio parcial.R",
     "project_path": "relatorio parcial.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1874565480",
     "contents": "",
-    "dirty": true,
+    "dirty": false,
     "created": 1702250153918.0,
     "source_on_save": false,
     "relative_order": 1,
@@ -16,11 +16,11 @@
         "scrollLine": "573"
     },
     "folds": "",
-    "lastKnownWriteTime": 1702921850,
+    "lastKnownWriteTime": 1702936224,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1702923518741,
+    "last_content_update": 1702936224981,
     "read_only": false,
     "read_only_alternatives": []
 }

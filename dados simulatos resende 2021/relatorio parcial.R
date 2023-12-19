@@ -584,7 +584,7 @@ blup_lmer_envmrk <- blup2_ic %>%
   geom_abline(intercept = mean_blup, slope = 0, aes(color = "red", linetype = "dashed"))+ 
   guides(color = FALSE)+
   facet_wrap(~blup)+
-  labs(y = "BLUP", x = "")+
+  labs(y = "BLUP", x = "Genótipo")+
   theme_bw()+
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank(),
