@@ -1,0 +1,53 @@
+---
+titulo: "trabalho do Cesar"
+subtitulo: "fodástico"
+aluno: "César"
+orientador: "Leandro"
+coorientador: ""
+semestre: 1
+ano: 2024
+referencias: biblio/referencias.bib
+pre-texto: "Project submitted to the Department of Statistics at the University of Brasília in fulfilment of the requirements for obtaining the degree of Bachelor in Statistics. "
+output: 
+  bookdown::pdf_document2:
+    template: monografia_template_vazio.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE,
+                      fig.align = "center",
+                      out.width="70%",
+                      fig.pos = "H",
+                      size = 'small')
+
+pacman::p_load(tidyverse,patchwork, 
+               broom, kableExtra, evaluate, 
+               microbenchmark, gtsummary)
+pacman::p_load_current_gh("cmusso86/recalibratiNN")
+```
+
+# Introduction
+
+
+\newpage
+# Background and related work
+
+
+
+\newpage
+
+# Methodology and Results
+
+
+
+\newpage
+
+# Conclusions and further work
+
+
+
+\newpage
+
+
